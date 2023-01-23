@@ -13,7 +13,9 @@ scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/drive']
 credentials = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
 client = gspread.authorize(credentials)
-spreadsheet_url = "https://docs.google.com/spreadsheets/d/1bIYD7ka9YgOzqRaY3hY7ygGm6lL7bYVJCdCWbxRdHmc/edit?usp=sharing"
+
+#add link to your spreadsheet here
+spreadsheet_url = "link to your spreadsheet after clicking on the share button"
 spreadsheet = client.open_by_url(spreadsheet_url)
 
 def is_present(text, pattern):
