@@ -1,23 +1,32 @@
+# Import necessary modules and packages
 from flask import Flask,request,jsonify
 from flask_cors import CORS
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from flask_caching import Cache
 
-app=Flask(__name__)
+# Create a Flask application instance
+app = Flask(__name__)
+
+# Enable Cross-Origin Resource Sharing to allow requests from other domains
 CORS(app)
+
+# Create a cache instance
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 
 # Use the credentials to create a client to interact with the Google Drive API
-scope = ['https://spreadsheets.google.com/feeds',
-         'https://www.googleapis.com/auth/drive']
+# Specify the scope of access for the credentials
+scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+# Load the credentials from the JSON file and authorize the client with the specified scope
 credentials = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
 client = gspread.authorize(credentials)
 
-#add link to your spreadsheet here
+# Add link to your spreadsheet here
+# Open the spreadsheet by its URL and get the first sheet
 spreadsheet_url = "link to your spreadsheet after clicking on the share button"
 spreadsheet = client.open_by_url(spreadsheet_url)
 
+# Define a helper function to check if a given pattern is present in a text
 def is_present(text, pattern):
     str = text
     if str.find(pattern) != -1:
@@ -25,43 +34,52 @@ def is_present(text, pattern):
     else:
         return False
 
+# Define a function to get the data from the Google Sheet
+# Cache the data for an hour to reduce the number of API requests
 @cache.cached(timeout=3600)
 def get_data_from_sheet():
     sheet = spreadsheet.sheet1
     data = sheet.get_all_values()
     return data
 
+# Define a route to return a simple message
 @app.route('/',methods=['GET'])
 def get_data():
     return 'Hello World !'
 
+# Define a route to return the list of distinct subjects from the Google Sheet
 @app.route('/subjects', methods=['GET'])
 def get_subjects():
     data = get_data_from_sheet()
     subjects = set()
-    counter=0
+    counter = 0
     for row in data:
-        if counter==0:
-            counter=1
+        # Skip the first row (header)
+        if counter == 0:
+            counter = 1
             continue
+        # Convert the subject to uppercase and remove leading/trailing whitespaces
         subjects.add(row[3].upper().strip())
+    # Convert the set to a list and return it as a JSON response
     return jsonify(list(subjects))
 
+# Define a route to return the filtered and paginated list of books from the Google Sheet
 @app.route('/data',methods=['POST'])
 def show_data():
     global dict_search
     data = get_data_from_sheet()
-    incoming_data=request.get_json()
-    PageNo =incoming_data.get('page')
+    incoming_data = request.get_json()
+    PageNo = incoming_data.get('page')
     BookAccNo = incoming_data.get('accNo')
     BookName = incoming_data.get('title')
     BookAuthor = incoming_data.get('author')
     BookSubject = incoming_data.get('subjectType')
     BooksList = []
-    limst_1=[]
-    limst_2=[]
-    limst_3=[]
-    iter=1
+    limst_1 = []
+    limst_2 = []
+    limst_3 = []
+    iter = 1
+    # If no filters are applied, return all the books
     if not BookAccNo and not BookName and not BookAuthor:
         lunt=0
         for iter in data:
@@ -79,7 +97,7 @@ def show_data():
             else:
                 BooksList.append(json_output)
     else:
-        while(iter < len(data)):
+        while iter < len(data):
             counter=0
             acc=data[iter][0]
             bookname=data[iter][1]
@@ -118,7 +136,7 @@ def show_data():
     limit = PageNo*20
     TotalPages=len(BooksList)
     BooksFinalList=[]
-    while(iter<limit and iter<TotalPages):
+    while iter<limit and iter<TotalPages:
         BooksFinalList.append(BooksList[iter])
         iter+=1
     return [{'MaxPage':int(TotalPages/20)+(TotalPages%20!=0)},{'BookList':BooksFinalList}]
