@@ -19,21 +19,11 @@ spreadsheet_url = "link to your spreadsheet after clicking on the share button"
 spreadsheet = client.open_by_url(spreadsheet_url)
 
 def is_present(text, pattern):
-  pattern_length = len(pattern)
-  offset_table = {}
-  for i in range(pattern_length - 1):
-    offset_table[pattern[i]] = pattern_length - 1 - i
-  text_index = pattern_length - 1
-  while text_index < len(text):
-    pattern_index = pattern_length - 1
-    while pattern_index >= 0 and text[text_index] == pattern[pattern_index]:
-      text_index -= 1
-      pattern_index -= 1
-    if pattern_index == -1:
-      return True
+    str = text
+    if str.find(pattern) != -1:
+        return True
     else:
-      text_index += max(offset_table.get(text[text_index], pattern_length), pattern_index - offset_table.get(pattern[pattern_index], 0))
-  return False
+        return False
 
 @cache.cached(timeout=3600)
 def get_data_from_sheet():
